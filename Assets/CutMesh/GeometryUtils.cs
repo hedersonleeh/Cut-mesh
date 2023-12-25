@@ -4,15 +4,25 @@ using System.Collections.Generic;
 
 public static class GeometryUtils
 {
-    public static Mesh CreateMesh(List<Vector3> vertices, int[] triangles)
+    public static Mesh CreateMesh(List<Vector3> vertices, int[] triangles, Mesh originalMesh)
     {
         var mesh = new Mesh();
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles;
+        var newUvs = new Vector2[mesh.vertexCount];
 
+        for (int i = 0; i < newUvs.Length; i++)
+        {
+
+            var x = vertices[i].x / originalMesh.bounds.size.x;
+            var y = vertices[i].y / originalMesh.bounds.size.y;
+            newUvs[i] = new Vector2(x, y);
+        }
+        mesh.uv = newUvs;
         mesh.RecalculateTangents();
         mesh.RecalculateNormals();
-        mesh.RecalculateUVDistributionMetric(0);
+
+
         return mesh;
     }
 
@@ -164,7 +174,7 @@ public static class GeometryUtils
         }
         var triangles = new int[(points.Count - 2) * 3];
         int triangleIndex = 0;
-        do
+        while (indexBuffer.Count > 3)
         {
             for (int i = 0; i < indexBuffer.Count; i++)
             {
@@ -204,16 +214,12 @@ public static class GeometryUtils
             }
 
 
-            if (indexBuffer.Count == 3)
-            {
 
-                triangles[triangleIndex++] = indexBuffer[0];
-                triangles[triangleIndex++] = indexBuffer[1];
-                triangles[triangleIndex++] = indexBuffer[2];
-                indexBuffer.Clear();
-            }
         }
-        while (indexBuffer.Count > 0);
+
+        triangles[triangleIndex++] = indexBuffer[0];
+        triangles[triangleIndex++] = indexBuffer[1];
+        triangles[triangleIndex++] = indexBuffer[2];
         return triangles;
     }
 
