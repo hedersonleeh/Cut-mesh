@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using static GeometryUtils;
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
@@ -51,7 +52,7 @@ public class ProceduralMesh : MonoBehaviour
         var originalMesh = m_filter.mesh;
         var y = originalMesh.bounds.size.y;
         var halfToCut = y / 2;
-        planeCut = new Plane(Vector3.up + Vector3.left, halfToCut);
+        planeCut = new Plane(Vector3.up, -halfToCut);
         var meshCutAbove = new Mesh();
         meshCutAbove.name = "Triangle Above";
         var meshCutBelow = new Mesh();
@@ -61,7 +62,7 @@ public class ProceduralMesh : MonoBehaviour
         _vertexAbove = new List<Vector3>();
         _vertexBelow = new List<Vector3>();
         List<Vector3> cutPoints = new List<Vector3>();
-
+        #region Mesh Cut
         for (int i = 0; i < originalMesh.triangles.Length; i += 3)
         {
             Vector3 v1 = originalMesh.vertices[originalMesh.triangles[i % originalMesh.triangles.Length]];
@@ -115,21 +116,50 @@ public class ProceduralMesh : MonoBehaviour
             }
 
         }
-        Vector3 minPoint = Vector3.positiveInfinity;
-        Vector3 maxPoint = Vector3.negativeInfinity;
+        if (cutPoints.Count < 2) return;
+        _cutPoints = new List<Vector3>() { cutPoints[0], cutPoints[^1] };
 
-        foreach (var cP in cutPoints)
-        {
-            minPoint = Vector3.Min(minPoint, cP);
-            maxPoint = Vector3.Max(maxPoint, cP);
-        }
-        _cutPoints = new Vector3[cutPoints.Count];
-        for (int i = 0; i < _cutPoints.Length; i++)
-        {
-            _cutPoints[i] = cutPoints[i];
-        }
-        //_cutPoints[0] = minPoint;
-        //_cutPoints[1] = maxPoint;
+        #endregion
+
+        #region Triangulation
+
+        var upVertices = new List<Vector3>(_vertexAbove);
+        upVertices.AddRange((_cutPoints));
+
+        var downVertices = new List<Vector3>(_vertexBelow);
+        downVertices.AddRange((_cutPoints));
+
+        SortPolygonPoints(upVertices);
+        SortPolygonPoints(downVertices);
+
+        var upTriangleMesh = GetTrianglesFromPoints(upVertices);
+        var downTriangleMesh = GetTrianglesFromPoints(downVertices);
+
+        var upMesh = CreateMesh(upVertices, upTriangleMesh);
+        var downMesh = CreateMesh(downVertices, downTriangleMesh);
+
+        var A = new GameObject("A");
+        var B = new GameObject("B");
+
+        BoxCollider boxA = CreateCutObj(upMesh, A);
+        BoxCollider boxB = CreateCutObj(downMesh, B);
+
+      
+   
+
+        A.transform.position = transform.position;
+        B.transform.position = transform.position;
+        #endregion
+    }
+
+    private BoxCollider CreateCutObj(Mesh upMesh, GameObject A)
+    {
+        A.AddComponent<MeshFilter>().mesh = upMesh;
+        A.AddComponent<MeshRenderer>().material = GetComponent<MeshRenderer>().material;
+        A.AddComponent<Rigidbody>().AddForce(planeCut.normal * .1f, ForceMode.Impulse);
+        var box = A.AddComponent<BoxCollider>();
+        box.size = upMesh.bounds.size + Vector3.forward * .1f;
+        return box;
     }
 
     private void AddToList(Vector3 vertex, bool above)
@@ -145,7 +175,7 @@ public class ProceduralMesh : MonoBehaviour
                 _vertexBelow.Add(vertex);
         }
     }
-   
+
     private bool VertexIsAbovePlane(Plane plane, Vector3 vertex)
     {
         var isAbove = plane.GetSide(vertex);
@@ -155,7 +185,7 @@ public class ProceduralMesh : MonoBehaviour
     }
     List<Vector3> _vertexAbove = new List<Vector3>();
     List<Vector3> _vertexBelow = new List<Vector3>();
-    Vector3[] _cutPoints = new Vector3[2];
+    List<Vector3> _cutPoints = new List<Vector3>();
 
     private void OnDrawGizmos()
     {
