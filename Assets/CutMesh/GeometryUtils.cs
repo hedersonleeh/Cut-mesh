@@ -4,18 +4,18 @@ using System.Collections.Generic;
 
 public static class GeometryUtils
 {
-    public static Mesh CreateMesh(List<Vector3> vertices, int[] triangles, Mesh originalMesh)
+    public static Mesh CreateMesh(List<Vector3> vertices, List<int> triangles, Mesh originalMesh, Transform tranform)
     {
         var mesh = new Mesh();
         mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles;
+        mesh.triangles = triangles.ToArray();
         var newUvs = new Vector2[mesh.vertexCount];
 
         for (int i = 0; i < newUvs.Length; i++)
         {
-
-            var x = vertices[i].x / originalMesh.bounds.size.x;
-            var y = vertices[i].y / originalMesh.bounds.size.y;
+            if (tranform.localScale.x == 0 || tranform.localScale.y == 0) break;
+            var x = vertices[i].x / originalMesh.bounds.size.x / tranform.localScale.x;
+            var y = vertices[i].y / originalMesh.bounds.size.y / tranform.localScale.y;
             newUvs[i] = new Vector2(x, y);
         }
         mesh.uv = newUvs;
@@ -26,18 +26,51 @@ public static class GeometryUtils
         return mesh;
     }
 
-    public static void SortPolygonPoints(List<Vector3> points, bool clockwise = false)
+    public static List<Vector3> SortPolygonPoints(List<Vector3> points, bool clockwise = false)
     {
-        if (clockwise)
-            points.Sort(CompareClockWise);
-        else
-            points.Sort(CompareCounterClockWise);
+        //if (clockwise)
+        //    points.Sort(CompareClockWise);
+        //else
+        //    points.Sort(CompareCounterClockWise);
 
+        Dictionary<Vector3, List<int>> planeCount = new Dictionary<Vector3, List<int>>();
 
+        for (int i = 0; i < points.Count; i += 3)
+        {
+            Vector3 v1 = points[i % points.Count];
+            Vector3 v2 = points[(i + 1) % points.Count];
+            Vector3 v3 = points[(i + 2) % points.Count];
+
+            var plane = new Plane(v1, v2, v3);
+            if (!planeCount.ContainsKey(plane.normal))
+            {
+                planeCount.Add(plane.normal, new List<int>());
+            }
+            planeCount[plane.normal].Add(i);
+            planeCount[plane.normal].Add((i + 1) % points.Count);
+            planeCount[plane.normal].Add((i + 2) % points.Count);
+        }
+        List<Vector3> result = new List<Vector3>();
+        foreach (var pNormal in planeCount.Keys)
+        {
+            var orderedIndexList = planeCount[pNormal].OrderBy((idx) =>
+            {
+                var cross = Vector3.Cross(pNormal, points[idx]);
+                return points[idx].y;
+            });
+            foreach (var idx in orderedIndexList)
+            {
+                result.Add(points[idx]);
+            }
+        }
+        result = new List<Vector3>(points);
+        result.Sort(CompareCounterClockWise);
+        return result;
     }
 
     private static int CompareClockWise(Vector3 A, Vector3 B)
     {
+
         if (Mathf.Atan2(A.y, A.x) < Mathf.Atan2(B.y, B.x))
         {
 
@@ -70,6 +103,22 @@ public static class GeometryUtils
     }
     private static int CompareCounterClockWise(Vector3 A, Vector3 B)
     {
+        var c = Vector3.Cross(A, B);
+        if (Mathf.Abs(c.x) > 0)
+        {
+            A.x = A.z;
+            B.x = B.z;
+        }
+        else
+        if (Mathf.Abs(c.y) > 0)
+        {
+            A.y = A.z;
+            B.y = B.z;
+        }
+        if (Mathf.Abs(c.z) > 0)
+        {
+
+        }
         if (Mathf.Atan2(A.x, A.y) < Mathf.Atan2(B.x, B.y))
         {
 
@@ -106,7 +155,7 @@ public static class GeometryUtils
     public static float GetSlope(Vector3 a, Vector3 b)
     {
         if (b.x - a.x == 0) return 0;
-        return (b.y - a.y / (b.x - a.x));
+        return (b.y - a.y) / (b.x - a.x);
     }
     /// <summary>
     /// Will return (A,B,C) from = Ax+By+C  line form
@@ -120,14 +169,15 @@ public static class GeometryUtils
                                       P1.x - P2.x,
                                       -(P1.x * P2.y) - (P2.x * P1.y));
     }
-    public static Vector3 FindCutPoint(Plane plane, Vector3 P1, Vector3 P2)
+    public static Vector3 GetCutPoint(Plane plane, Vector3 P1, Vector3 P2)
     {
-        Vector3 P3 = plane.ClosestPointOnPlane(P1);
-        Vector3 P4 = plane.ClosestPointOnPlane(P2);
-        var result = GetIntersection(P1, P2, P3, P4);
-        return result;
-
-
+        var P1toP2 = (P2-P1).normalized;
+        Ray rayToPlane = new Ray(P1, P1toP2);
+        var raycastHit = plane.Raycast(rayToPlane, out var distance);
+        Debug.Assert(raycastHit, "The raycast to plane doesn't hit there was an error on the vectors or plane");
+        var cutPoint = rayToPlane.GetPoint(distance);
+        Debug.DrawLine(P1, cutPoint, Color.gray, 10);
+        return cutPoint;
     }
     public static Vector3 GetIntersection(Vector3 A, Vector3 B, Vector3 C, Vector3 D)
     {
