@@ -27,7 +27,7 @@ public static class MeshCutter
 
 
         for (int i = 0; i < originalMesh.triangles.Length; i += 3)
-            {
+        {
             Vector3 v1 = originalMesh.vertices[originalMesh.triangles[i]];
             Vector3 v2 = originalMesh.vertices[originalMesh.triangles[i + 1]];
             Vector3 v3 = originalMesh.vertices[originalMesh.triangles[i + 2]];
@@ -62,15 +62,16 @@ public static class MeshCutter
                 {
                     side = v1IsAbove;
 
-                    CutAndAddToTriangelist(planeCut, v3, v1, v2, out cut1, out cut2);
+                    cut1 = CutAndAddToTriangelist(planeCut, v2, v3);
+                    cut2 = CutAndAddToTriangelist(planeCut, v3, v1);
 
                     aloneCuts = (GetCutIndex(cut1, !side), GetCutIndex(cut2, !side));
                     sameSideCuts = (GetCutIndex(cut1, side), GetCutIndex(cut2, side));
 
                     AddToTriangleList(idxV3, aloneCuts.Item2, aloneCuts.Item1, !side);
 
-                    AddToTriangleList(idxV1, sameSideCuts.Item1, idxV2, side);
-                    AddToTriangleList(idxV1,sameSideCuts.Item1, sameSideCuts.Item2, side);
+                    AddToTriangleList(idxV1, idxV2, sameSideCuts.Item2, side);
+                    AddToTriangleList(idxV2, sameSideCuts.Item1, sameSideCuts.Item2, side);
 
 
                 }
@@ -80,7 +81,8 @@ public static class MeshCutter
                     {
                         side = v1IsAbove;
 
-                        CutAndAddToTriangelist(planeCut, v2, v1, v3, out cut1, out cut2);
+                        cut1 = CutAndAddToTriangelist(planeCut, v1, v2);
+                        cut2 = CutAndAddToTriangelist(planeCut, v2, v3);
 
                         aloneCuts = (GetCutIndex(cut1, !side), GetCutIndex(cut2, !side));
                         sameSideCuts = (GetCutIndex(cut1, side), GetCutIndex(cut2, side));
@@ -94,15 +96,16 @@ public static class MeshCutter
                     {
                         side = !v1IsAbove;
 
-                        CutAndAddToTriangelist(planeCut, v1, v2, v3, out cut1, out cut2);
+                        cut1 = CutAndAddToTriangelist(planeCut, v3, v1);
+                        cut2 = CutAndAddToTriangelist(planeCut, v1, v2);
 
                         aloneCuts = (GetCutIndex(cut1, !side), GetCutIndex(cut2, !side));
                         sameSideCuts = (GetCutIndex(cut1, side), GetCutIndex(cut2, side));
 
-                        AddToTriangleList(idxV1, aloneCuts.Item1, aloneCuts.Item2, !side);
+                        AddToTriangleList(idxV1, aloneCuts.Item2, aloneCuts.Item1, !side);
 
-                        AddToTriangleList(idxV3, sameSideCuts.Item1,  idxV2, side);
-                        AddToTriangleList(idxV3,sameSideCuts.Item2, sameSideCuts.Item1, side);
+                        AddToTriangleList(idxV3, sameSideCuts.Item1, idxV2, side);
+                        AddToTriangleList(idxV2, sameSideCuts.Item1, sameSideCuts.Item2, side);
                     }
                 }
 
@@ -128,16 +131,13 @@ public static class MeshCutter
 
     }
 
-    private static void CutAndAddToTriangelist(Plane planeCut, Vector3 alone, Vector3 firts, Vector3 second, out Vector3 cut1, out Vector3 cut2)
+    private static Vector3 CutAndAddToTriangelist(Plane planeCut, Vector3 from, Vector3 to)
     {
-        cut1 = GetCutPoint(planeCut, alone, firts);
-        cut2 = GetCutPoint(planeCut, alone, second);
+        var cut = GetCutPoint(planeCut, from, to);
 
-        AddToVertexList(cut1, true);
-        AddToVertexList(cut1, false);
-
-        AddToVertexList(cut2, true);
-        AddToVertexList(cut2, false);
+        AddToVertexList(cut, true);
+        AddToVertexList(cut, false);
+        return cut;
 
     }
 

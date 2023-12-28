@@ -8,6 +8,8 @@ public class ProceduralMesh : MonoBehaviour
     public Transform planeT;
     Plane _planeCut;
     List<Vector3> _cutPoints;
+    List<Vector3> _upPoints;
+    List<Vector3> _DownPoints;
 
     private void Update()
     {
@@ -24,13 +26,16 @@ public class ProceduralMesh : MonoBehaviour
                 Rigidbody rbB = CreateRigidBodyObj(cutResult.Item2);
                 //rbA.isKinematic = true;
                 //rbB.isKinematic = true;
-                //rbA.AddForce(_planeCut.normal, ForceMode.Impulse);
-                //rbB.AddForce(-_planeCut.normal, ForceMode.Impulse);
+                rbA.AddForceAtPosition(_planeCut.normal, Random.insideUnitSphere, ForceMode.Impulse);
+                rbB.AddForce(-_planeCut.normal, ForceMode.Impulse);
 
 
                 rbA.transform.position = transform.position;
                 rbB.transform.position = transform.position;
-
+                _upPoints = new List<Vector3>();
+                _DownPoints = new List<Vector3>();
+                _upPoints.AddRange(cutResult.Item1.vertices);
+                _DownPoints.AddRange(cutResult.Item2.vertices);
                 //rbA.transform.localScale = transform.localScale;
                 //rbB.transform.localScale = transform.localScale;
 
@@ -96,8 +101,9 @@ public class ProceduralMesh : MonoBehaviour
         Obj.name = mesh.name + " " + Obj.GetInstanceID();
         Obj.AddComponent<MeshFilter>().mesh = mesh;
         Obj.AddComponent<MeshRenderer>().material = GetComponent<MeshRenderer>().material;
-        var box = Obj.AddComponent<BoxCollider>();
-        box.size = mesh.bounds.size + Vector3.forward * .1f;
+        var meshC = Obj.AddComponent<MeshCollider>();
+        meshC.sharedMesh = mesh;
+        meshC.convex = true;
         return Obj.AddComponent<Rigidbody>();
     }
 
@@ -112,6 +118,19 @@ public class ProceduralMesh : MonoBehaviour
             {
                 Gizmos.DrawWireSphere(p, 0.1f);
             }
+        if (_upPoints != null)
+            foreach (var p in _upPoints)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawSphere(p, 0.1f);
 
+            }
+        if (_DownPoints != null)
+            foreach (var p in _DownPoints)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawSphere(p, 0.1f);
+
+            }
     }
 }
