@@ -9,7 +9,8 @@ public static class MeshCutter
     static List<Vector3> _verticesBelow;
     static List<int> _trianglesAbove;
     static List<int> _trianglesBelow;
-    public static bool CutMesh(Plane planeCut, Transform transform, Mesh targetMesh, out (Mesh, Mesh) result, out List<Vector3> cutPoints)
+    static List<Vector3> _cutPoints;
+    public static bool CutMesh(Plane planeCut, Transform transform, Mesh targetMesh, out (Mesh, Mesh, List<Vector3>) result)
     {
         var originalMesh = targetMesh;
         var meshCutAbove = new Mesh();
@@ -22,6 +23,7 @@ public static class MeshCutter
         _verticesBelow = new List<Vector3>();
         _trianglesAbove = new List<int>();
         _trianglesBelow = new List<int>();
+        _cutPoints = new List<Vector3>();
         List<Vector3> totalCutPoints = new List<Vector3>();
 
 
@@ -113,34 +115,169 @@ public static class MeshCutter
 
         }
 
-        result = (null, null);
-        cutPoints = null;
+        result = (null, null, null);
 
 
-        //SortCutPoints(totalCutPoints);
-        cutPoints = new List<Vector3>(totalCutPoints);
+        Vector3 centroid = Vector3.zero;
+
+        _cutPoints.ForEach(p => centroid += p);
+        centroid /= _cutPoints.Count;
+        var coverATriangle = new List<int>();
+        var coverBTriangle = new List<int>();
+
+        _verticesAbove.Add(centroid);
+        _verticesBelow.Add(centroid);
+        for (int i = 0; i < _cutPoints.Count; i++)
+        {
+            Debug.DrawLine(_cutPoints[i], _cutPoints[(i + 1) % _cutPoints.Count], Color.red, 100);
+
+            var point1 = _cutPoints[i];
+            var point2 = _cutPoints[(i + 1) % _cutPoints.Count];
+            var point3 = centroid;
+
+            var triangleA = new int[] { _verticesAbove.IndexOf(point1), _verticesAbove.IndexOf(point2), _verticesAbove.IndexOf(centroid) };
+            var triangleB = new int[] { _verticesBelow.IndexOf(point2), _verticesBelow.IndexOf(point1), _verticesBelow.IndexOf(centroid) };
+
+            var cross = Vector3.Cross(point2 - point3, point1 - point3);
+
+            var dot = Vector3.Dot(cross, planeCut.normal);
+
+            Debug.Log("Dot: " + dot);
+            if (dot < 0)
+            {
+                //triangleA = FlipTriangle(triangleA);
+                //triangleB = FlipTriangle(triangleB);
+            }
+            else
+            {
+
+            }
+            //var a1 = _verticesAbove.IndexOf(_cutPoints[i]);
+            //var a2 = _verticesAbove.IndexOf(_cutPoints[(i + 1)]);
+            //var a3 = _verticesAbove.IndexOf(centroid);
+
+            //int b1 = _verticesBelow.IndexOf(_cutPoints[i]);
+            //int b2 = _verticesBelow.IndexOf(_cutPoints[(i + 1)]);
+            //int b3 = _verticesBelow.IndexOf(centroid);
+
+            //var cNormal = new Plane(_cutPoints[i], _cutPoints[i + 1], centroid);
+            //var n2 =GetHalfwayPoint(out var distance).normalized;
+            //var dot = Vector3.Dot(cNormal.normal, planeCut.normal);
+            //if (dot > 0)
+            //{
+            coverATriangle.AddRange(triangleA);
 
 
+            coverBTriangle.AddRange(triangleB);
+
+            //}
+            //else
+            //{
+            //    coverATriangle.Add(a1);
+            //    coverATriangle.Add(a2);
+            //    coverATriangle.Add(a3);
+
+            //    coverBTriangle.Add(b3);
+            //    coverBTriangle.Add(b2);
+            //    coverBTriangle.Add(b1);
+            //}
+
+        }
+
+
+        _trianglesAbove.AddRange(coverATriangle);
+        _trianglesBelow.AddRange(coverBTriangle);
         var upMesh = CreateMesh(_verticesAbove, _trianglesAbove, originalMesh, transform);
         var downMesh = CreateMesh(_verticesBelow, _trianglesBelow, originalMesh, transform);
 
-        result = (upMesh, downMesh);
+        result = (upMesh, downMesh, _cutPoints);
 
         return true;
 
 
     }
+    private static void OrderVertices(Plane plane, ref List<Vector3> vertices, bool clockwise = false)
+    {
+        var normal = plane.normal;
+        bool ready = true;
+        while (ready)
+        {
 
+
+            ready = false;
+            for (int i = 0; i < vertices.Count; i += 3)
+            {
+                var v1 = vertices[i];
+                var v2 = vertices[(i + 1) % vertices.Count];
+                var v3 = vertices[(i + 2) % vertices.Count];
+
+                var cross = Vector3.Cross(v2 - v1, v3 - v2);
+                var dot = Vector3.Dot(cross, normal);
+
+                var triangle = new Vector3[] { v1, v2, v3 };
+
+                if (dot > 0)
+                {
+                    triangle = FlipTriangleVertices(triangle);
+
+                    vertices[i] = triangle[0];
+                    vertices[(i + 1) % vertices.Count] = triangle[1];
+                    vertices[(i + 2) % vertices.Count] = triangle[2];
+                    ready = true;
+                    break;
+                }
+
+
+            }
+        }
+    }
+    private static Vector3[] FlipTriangleVertices(Vector3[] triangleVertices)
+    {
+        return new Vector3[] { triangleVertices[0], triangleVertices[2], triangleVertices[1] };
+    }
+    private static int[] FlipTriangle(int[] triangle)
+    {
+        return new int[] { triangle[1], triangle[0], triangle[2] };
+    }
     private static Vector3 CutAndAddToTriangelist(Plane planeCut, Vector3 from, Vector3 to)
     {
         var cut = GetCutPoint(planeCut, from, to);
 
+        if (!_cutPoints.Contains(cut))
+            _cutPoints.Add(cut);
         AddToVertexList(cut, true);
         AddToVertexList(cut, false);
         return cut;
 
     }
+    private static Vector3 GetHalfwayPoint(out float distance)
+    {
+        if (_cutPoints.Count > 0)
+        {
+            Vector3 firstPoint = _cutPoints[0];
+            Vector3 furthestPoint = Vector3.zero;
+            distance = 0f;
 
+            foreach (Vector3 point in _cutPoints)
+            {
+                float currentDistance = 0f;
+                currentDistance = Vector3.Distance(firstPoint, point);
+
+                if (currentDistance > distance)
+                {
+                    distance = currentDistance;
+                    furthestPoint = point;
+                }
+            }
+
+            return Vector3.Lerp(firstPoint, furthestPoint, 0.5f);
+        }
+        else
+        {
+            distance = 0;
+            return Vector3.zero;
+        }
+    }
     private static void SortCutPoints(List<Vector3> totalCutPoints)
     {
         totalCutPoints.Sort(CompareCutpoints);
@@ -170,12 +307,20 @@ public static class MeshCutter
     {
         if (above)
         {
+            if (_verticesAbove.Contains(vertex))
+            {
+                return _verticesAbove.IndexOf(vertex);
+            }
             _verticesAbove.Add(vertex);
             return _verticesAbove.Count - 1;
 
         }
         else
         {
+            if (_verticesBelow.Contains(vertex))
+            {
+                return _verticesBelow.IndexOf(vertex);
+            }
 
             _verticesBelow.Add(vertex);
             return _verticesBelow.Count - 1;

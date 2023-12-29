@@ -68,7 +68,7 @@ public static class GeometryUtils
         return result;
     }
 
-    private static int CompareClockWise(Vector3 A, Vector3 B)
+    public static int CompareClockWise(Vector3 A, Vector3 B)
     {
 
         if (Mathf.Atan2(A.y, A.x) < Mathf.Atan2(B.y, B.x))

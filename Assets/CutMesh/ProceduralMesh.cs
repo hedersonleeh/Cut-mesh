@@ -7,9 +7,9 @@ public class ProceduralMesh : MonoBehaviour
 {
     public Transform planeT;
     Plane _planeCut;
-    List<Vector3> _cutPoints;
     List<Vector3> _upPoints;
     List<Vector3> _DownPoints;
+    List<Vector3> _cutPoints;
 
     private void Update()
     {
@@ -17,9 +17,9 @@ public class ProceduralMesh : MonoBehaviour
         {
 
             _planeCut = new Plane(planeT.transform.up, planeT.transform.position);
-            if (MeshCutter.CutMesh(_planeCut, transform, gameObject.GetComponent<MeshFilter>().mesh, out var cutResult, out _cutPoints))
+            if (MeshCutter.CutMesh(_planeCut, transform, gameObject.GetComponent<MeshFilter>().mesh, out var cutResult))
             {
-                gameObject.SetActive(false);
+                gameObject.GetComponent<MeshRenderer>().enabled = false;
 
 
                 Rigidbody rbA = CreateRigidBodyObj(cutResult.Item1);
@@ -34,6 +34,7 @@ public class ProceduralMesh : MonoBehaviour
                 rbB.transform.position = transform.position;
                 _upPoints = new List<Vector3>();
                 _DownPoints = new List<Vector3>();
+                _cutPoints = cutResult.Item3;
                 _upPoints.AddRange(cutResult.Item1.vertices);
                 _DownPoints.AddRange(cutResult.Item2.vertices);
                 //rbA.transform.localScale = transform.localScale;
@@ -113,24 +114,32 @@ public class ProceduralMesh : MonoBehaviour
         var offset = _planeCut.normal * (_planeCut.distance);
         Gizmos.DrawLine(-100 * rightLine - offset, 100 * rightLine - offset);
 
+
+        //if (_upPoints != null)
+        //    foreach (var p in _upPoints)
+        //    {
+        //        Gizmos.color = Color.green;
+        //        Gizmos.DrawSphere(p, 0.1f);
+
+        //    }
+        //if (_DownPoints != null)
+        //    foreach (var p in _DownPoints)
+        //    {
+        //        Gizmos.color = Color.red;
+        //        Gizmos.DrawSphere(p, 0.1f);
+
+        //    }
+
         if (_cutPoints != null)
-            foreach (var p in _cutPoints)
+        {
+            for (int i = 0; i < _cutPoints.Count; i++)
             {
-                Gizmos.DrawWireSphere(p, 0.1f);
+                Vector3 cP = _cutPoints[i];
+                Gizmos.color = Color.Lerp(Color.magenta,Color.cyan, i / (float)_cutPoints.Count);
+                Gizmos.DrawWireSphere(cP, 0.1f);
             }
-        if (_upPoints != null)
-            foreach (var p in _upPoints)
-            {
-                Gizmos.color = Color.green;
-                Gizmos.DrawSphere(p, 0.1f);
+        }
 
-            }
-        if (_DownPoints != null)
-            foreach (var p in _DownPoints)
-            {
-                Gizmos.color = Color.red;
-                Gizmos.DrawSphere(p, 0.1f);
-
-            }
     }
+    
 }
