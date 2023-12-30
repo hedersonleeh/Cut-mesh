@@ -172,6 +172,23 @@ public static class MeshCutter
         _upUVs.Add(Vector2.zero);
         _downUVs.Add(Vector2.zero);
 
+        for (int i = 0; i < _cutPoints.Count; i++)
+        {
+            var point1 = _cutPoints[i];
+            var point2 = _cutPoints[(i + 1) % _cutPoints.Count];
+            var point3 = centroid;
+
+            Debug.DrawLine(point1, point2, Color.red, 100);
+
+            var triangleA = new int[] { _verticesAbove.IndexOf(point2), _verticesAbove.IndexOf(point1), _verticesAbove.IndexOf(centroid) };
+            var triangleB = new int[] { _verticesBelow.IndexOf(point1), _verticesBelow.IndexOf(point2), _verticesBelow.IndexOf(centroid) };
+
+            coverATriangle.AddRange(triangleA);
+            coverBTriangle.AddRange(triangleB);
+
+
+        }
+
 
         _trianglesAbove.AddRange(coverATriangle);
         _trianglesBelow.AddRange(coverBTriangle);
