@@ -13,13 +13,22 @@ public class ProceduralMesh : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKey(KeyCode.Q))
+        {
+            planeT.Rotate(Vector3.forward );
+        }
+        else if (Input.GetKey(KeyCode.E))
+        {
+            planeT.Rotate(Vector3.back );
+
+        }
         if (Input.GetKeyDown(KeyCode.Space))
         {
 
             _planeCut = new Plane(planeT.transform.up, planeT.transform.position);
             if (MeshCutter.CutMesh(_planeCut, transform, gameObject.GetComponent<MeshFilter>().mesh, out var cutResult))
             {
-                gameObject.GetComponent<MeshRenderer>().enabled = false;
+                //gameObject.GetComponent<MeshRenderer>().enabled = false;
 
 
                 Rigidbody rbA = CreateRigidBodyObj(cutResult.Item1);
@@ -81,8 +90,6 @@ public class ProceduralMesh : MonoBehaviour
 
         };
         List<Vector3> vertices = mesh.vertices.ToList();
-        //GeometryUtils.SortPolygonPoints(vertices);
-        //mesh.triangles = GeometryUtils.GetTrianglesFromPoints(vertices);
         mesh.RecalculateBounds();
         mesh.RecalculateNormals();
         mesh.RecalculateTangents();
@@ -135,11 +142,11 @@ public class ProceduralMesh : MonoBehaviour
             for (int i = 0; i < _cutPoints.Count; i++)
             {
                 Vector3 cP = _cutPoints[i];
-                Gizmos.color = Color.Lerp(Color.magenta,Color.cyan, i / (float)_cutPoints.Count);
+                Gizmos.color = Color.Lerp(Color.magenta, Color.cyan, i / (float)_cutPoints.Count);
                 Gizmos.DrawWireSphere(cP, 0.1f);
             }
         }
 
     }
-    
+
 }

@@ -4,24 +4,14 @@ using System.Collections.Generic;
 
 public static class GeometryUtils
 {
-    public static Mesh CreateMesh(List<Vector3> vertices, List<int> triangles, Mesh originalMesh, Transform tranform)
+    public static Mesh CreateMesh(List<Vector3> vertices, List<int> triangles, List<Vector2> uvs, Mesh originalMesh, Transform tranform)
     {
         var mesh = new Mesh();
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
-        var newUvs = new Vector2[mesh.vertexCount];
-
-        for (int i = 0; i < newUvs.Length; i++)
-        {
-            if (tranform.localScale.x == 0 || tranform.localScale.y == 0) break;
-            var x = vertices[i].x / originalMesh.bounds.size.x / tranform.localScale.x;
-            var y = vertices[i].y / originalMesh.bounds.size.y / tranform.localScale.y;
-            newUvs[i] = new Vector2(x, y);
-        }
-        mesh.uv = newUvs;
+        mesh.uv = uvs.ToArray();
         mesh.RecalculateTangents();
         mesh.RecalculateNormals();
-
 
         return mesh;
     }
@@ -169,11 +159,11 @@ public static class GeometryUtils
                                       P1.x - P2.x,
                                       -(P1.x * P2.y) - (P2.x * P1.y));
     }
-    public static Vector3 GetCutPoint(Plane plane, Vector3 P1, Vector3 P2)
+    public static Vector3 GetCutPoint(Plane plane, Vector3 P1, Vector3 P2, out float distance)
     {
-        var P1toP2 = (P2-P1).normalized;
+        var P1toP2 = (P2 - P1).normalized;
         Ray rayToPlane = new Ray(P1, P1toP2);
-        var raycastHit = plane.Raycast(rayToPlane, out var distance);
+        var raycastHit = plane.Raycast(rayToPlane, out distance);
         Debug.Assert(raycastHit, "The raycast to plane doesn't hit there was an error on the vectors or plane");
         var cutPoint = rayToPlane.GetPoint(distance);
         Debug.DrawLine(P1, cutPoint, Color.gray, 10);

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using static GeometryUtils;
@@ -7,8 +8,13 @@ public static class MeshCutter
 {
     static List<Vector3> _verticesAbove;
     static List<Vector3> _verticesBelow;
+
     static List<int> _trianglesAbove;
     static List<int> _trianglesBelow;
+
+    static List<Vector2> _upUVs;
+    static List<Vector2> _downUVs;
+
     static List<Vector3> _cutPoints;
     public static bool CutMesh(Plane planeCut, Transform transform, Mesh targetMesh, out (Mesh, Mesh, List<Vector3>) result)
     {
@@ -24,6 +30,8 @@ public static class MeshCutter
         _trianglesAbove = new List<int>();
         _trianglesBelow = new List<int>();
         _cutPoints = new List<Vector3>();
+        _upUVs = new List<Vector2>();
+        _downUVs = new List<Vector2>();
         List<Vector3> totalCutPoints = new List<Vector3>();
 
 
@@ -34,17 +42,28 @@ public static class MeshCutter
             Vector3 v2 = originalMesh.vertices[originalMesh.triangles[i + 1]];
             Vector3 v3 = originalMesh.vertices[originalMesh.triangles[i + 2]];
 
+            var indexUv1 = Array.IndexOf(originalMesh.vertices, v1);
+            var indexUv2 = Array.IndexOf(originalMesh.vertices, v2);
+            var indexUv3 = Array.IndexOf(originalMesh.vertices, v3);
+
             v1 = transform.TransformPoint(v1);
             v2 = transform.TransformPoint(v2);
             v3 = transform.TransformPoint(v3);
+
+            var uv1 = originalMesh.uv[indexUv1];
+            var uv2 = originalMesh.uv[indexUv2];
+            var uv3 = originalMesh.uv[indexUv3];
 
             var v1IsAbove = VertexIsAbovePlane(planeCut, v1);
             var v2IsAbove = VertexIsAbovePlane(planeCut, v2);
             var v3IsAbove = VertexIsAbovePlane(planeCut, v3);
 
-            int idxV1 = AddToVertexList(v1, v1IsAbove);
-            int idxV2 = AddToVertexList(v2, v2IsAbove);
-            int idxV3 = AddToVertexList(v3, v3IsAbove);
+
+            int idxV1 = AddToVertexList(v1, uv1, v1IsAbove);
+            int idxV2 = AddToVertexList(v2, uv2, v2IsAbove);
+            int idxV3 = AddToVertexList(v3, uv3, v3IsAbove);
+
+
 
 
 
@@ -52,6 +71,7 @@ public static class MeshCutter
                 ((!v1IsAbove && !v2IsAbove && !v3IsAbove))) //none above
             {
                 AddToTriangleList(idxV1, idxV2, idxV3, v1IsAbove);
+
                 continue; //no one get cut the plane
             }
             else
@@ -64,8 +84,8 @@ public static class MeshCutter
                 {
                     side = v1IsAbove;
 
-                    cut1 = CutAndAddToTriangelist(planeCut, v2, v3);
-                    cut2 = CutAndAddToTriangelist(planeCut, v3, v1);
+                    cut1 = CutAndAddToTriangelist(planeCut, v2, uv2, v3, uv3);
+                    cut2 = CutAndAddToTriangelist(planeCut, v3, uv3, v1, uv1);
 
                     aloneCuts = (GetCutIndex(cut1, !side), GetCutIndex(cut2, !side));
                     sameSideCuts = (GetCutIndex(cut1, side), GetCutIndex(cut2, side));
@@ -73,7 +93,9 @@ public static class MeshCutter
                     AddToTriangleList(idxV3, aloneCuts.Item2, aloneCuts.Item1, !side);
 
                     AddToTriangleList(idxV1, idxV2, sameSideCuts.Item2, side);
+
                     AddToTriangleList(idxV2, sameSideCuts.Item1, sameSideCuts.Item2, side);
+
 
 
                 }
@@ -83,8 +105,8 @@ public static class MeshCutter
                     {
                         side = v1IsAbove;
 
-                        cut1 = CutAndAddToTriangelist(planeCut, v1, v2);
-                        cut2 = CutAndAddToTriangelist(planeCut, v2, v3);
+                        cut1 = CutAndAddToTriangelist(planeCut, v1, uv1, v2, uv2);
+                        cut2 = CutAndAddToTriangelist(planeCut, v2, uv2, v3, uv3);
 
                         aloneCuts = (GetCutIndex(cut1, !side), GetCutIndex(cut2, !side));
                         sameSideCuts = (GetCutIndex(cut1, side), GetCutIndex(cut2, side));
@@ -92,14 +114,18 @@ public static class MeshCutter
                         AddToTriangleList(idxV2, aloneCuts.Item2, aloneCuts.Item1, !side);
 
                         AddToTriangleList(idxV1, sameSideCuts.Item1, idxV3, side);
+
                         AddToTriangleList(idxV3, sameSideCuts.Item1, sameSideCuts.Item2, side);
+
+
+
                     }
                     else
                     {
                         side = !v1IsAbove;
 
-                        cut1 = CutAndAddToTriangelist(planeCut, v3, v1);
-                        cut2 = CutAndAddToTriangelist(planeCut, v1, v2);
+                        cut1 = CutAndAddToTriangelist(planeCut, v3, uv3, v1, uv1);
+                        cut2 = CutAndAddToTriangelist(planeCut, v1, uv1, v2, uv2);
 
                         aloneCuts = (GetCutIndex(cut1, !side), GetCutIndex(cut2, !side));
                         sameSideCuts = (GetCutIndex(cut1, side), GetCutIndex(cut2, side));
@@ -107,9 +133,20 @@ public static class MeshCutter
                         AddToTriangleList(idxV1, aloneCuts.Item2, aloneCuts.Item1, !side);
 
                         AddToTriangleList(idxV3, sameSideCuts.Item1, idxV2, side);
+
                         AddToTriangleList(idxV2, sameSideCuts.Item1, sameSideCuts.Item2, side);
+
+
+
                     }
+
                 }
+
+
+                if (!_cutPoints.Contains(cut1))
+                    _cutPoints.Add(cut1);
+                if (!_cutPoints.Contains(cut2))
+                    _cutPoints.Add(cut2);
 
             }
 
@@ -117,78 +154,30 @@ public static class MeshCutter
 
         result = (null, null, null);
 
-
+        if (_cutPoints.Count < 2) return false;
         Vector3 centroid = Vector3.zero;
 
         _cutPoints.ForEach(p => centroid += p);
         centroid /= _cutPoints.Count;
+
         var coverATriangle = new List<int>();
         var coverBTriangle = new List<int>();
 
+
+        var firtsPoints = _cutPoints[0] - centroid;
+        _cutPoints = _cutPoints.OrderBy(p => Vector3.SignedAngle(firtsPoints.normalized, (p - centroid).normalized, planeCut.normal)).ToList();
+
         _verticesAbove.Add(centroid);
         _verticesBelow.Add(centroid);
-        for (int i = 0; i < _cutPoints.Count; i++)
-        {
-            Debug.DrawLine(_cutPoints[i], _cutPoints[(i + 1) % _cutPoints.Count], Color.red, 100);
-
-            var point1 = _cutPoints[i];
-            var point2 = _cutPoints[(i + 1) % _cutPoints.Count];
-            var point3 = centroid;
-
-            var triangleA = new int[] { _verticesAbove.IndexOf(point1), _verticesAbove.IndexOf(point2), _verticesAbove.IndexOf(centroid) };
-            var triangleB = new int[] { _verticesBelow.IndexOf(point2), _verticesBelow.IndexOf(point1), _verticesBelow.IndexOf(centroid) };
-
-            var cross = Vector3.Cross(point2 - point3, point1 - point3);
-
-            var dot = Vector3.Dot(cross, planeCut.normal);
-
-            Debug.Log("Dot: " + dot);
-            if (dot < 0)
-            {
-                //triangleA = FlipTriangle(triangleA);
-                //triangleB = FlipTriangle(triangleB);
-            }
-            else
-            {
-
-            }
-            //var a1 = _verticesAbove.IndexOf(_cutPoints[i]);
-            //var a2 = _verticesAbove.IndexOf(_cutPoints[(i + 1)]);
-            //var a3 = _verticesAbove.IndexOf(centroid);
-
-            //int b1 = _verticesBelow.IndexOf(_cutPoints[i]);
-            //int b2 = _verticesBelow.IndexOf(_cutPoints[(i + 1)]);
-            //int b3 = _verticesBelow.IndexOf(centroid);
-
-            //var cNormal = new Plane(_cutPoints[i], _cutPoints[i + 1], centroid);
-            //var n2 =GetHalfwayPoint(out var distance).normalized;
-            //var dot = Vector3.Dot(cNormal.normal, planeCut.normal);
-            //if (dot > 0)
-            //{
-            coverATriangle.AddRange(triangleA);
-
-
-            coverBTriangle.AddRange(triangleB);
-
-            //}
-            //else
-            //{
-            //    coverATriangle.Add(a1);
-            //    coverATriangle.Add(a2);
-            //    coverATriangle.Add(a3);
-
-            //    coverBTriangle.Add(b3);
-            //    coverBTriangle.Add(b2);
-            //    coverBTriangle.Add(b1);
-            //}
-
-        }
+        _upUVs.Add(Vector2.zero);
+        _downUVs.Add(Vector2.zero);
 
 
         _trianglesAbove.AddRange(coverATriangle);
         _trianglesBelow.AddRange(coverBTriangle);
-        var upMesh = CreateMesh(_verticesAbove, _trianglesAbove, originalMesh, transform);
-        var downMesh = CreateMesh(_verticesBelow, _trianglesBelow, originalMesh, transform);
+
+        var upMesh = CreateMesh(_verticesAbove, _trianglesAbove, _upUVs, originalMesh, transform);
+        var downMesh = CreateMesh(_verticesBelow, _trianglesBelow, _downUVs, originalMesh, transform);
 
         result = (upMesh, downMesh, _cutPoints);
 
@@ -196,114 +185,30 @@ public static class MeshCutter
 
 
     }
-    private static void OrderVertices(Plane plane, ref List<Vector3> vertices, bool clockwise = false)
+
+    private static Vector3 CutAndAddToTriangelist(Plane planeCut, Vector3 from, Vector2 uvFrom, Vector3 to, Vector2 uvTo)
     {
-        var normal = plane.normal;
-        bool ready = true;
-        while (ready)
-        {
-
-
-            ready = false;
-            for (int i = 0; i < vertices.Count; i += 3)
-            {
-                var v1 = vertices[i];
-                var v2 = vertices[(i + 1) % vertices.Count];
-                var v3 = vertices[(i + 2) % vertices.Count];
-
-                var cross = Vector3.Cross(v2 - v1, v3 - v2);
-                var dot = Vector3.Dot(cross, normal);
-
-                var triangle = new Vector3[] { v1, v2, v3 };
-
-                if (dot > 0)
-                {
-                    triangle = FlipTriangleVertices(triangle);
-
-                    vertices[i] = triangle[0];
-                    vertices[(i + 1) % vertices.Count] = triangle[1];
-                    vertices[(i + 2) % vertices.Count] = triangle[2];
-                    ready = true;
-                    break;
-                }
-
-
-            }
-        }
-    }
-    private static Vector3[] FlipTriangleVertices(Vector3[] triangleVertices)
-    {
-        return new Vector3[] { triangleVertices[0], triangleVertices[2], triangleVertices[1] };
-    }
-    private static int[] FlipTriangle(int[] triangle)
-    {
-        return new int[] { triangle[1], triangle[0], triangle[2] };
-    }
-    private static Vector3 CutAndAddToTriangelist(Plane planeCut, Vector3 from, Vector3 to)
-    {
-        var cut = GetCutPoint(planeCut, from, to);
-
-        if (!_cutPoints.Contains(cut))
-            _cutPoints.Add(cut);
-        AddToVertexList(cut, true);
-        AddToVertexList(cut, false);
+        var cut = GetCutPoint(planeCut, from, to, out var distance);
+        var interpolatedUV = Vector2.Lerp(uvFrom, uvTo, InverseLerp(from, to, cut));
+        AddToVertexList(cut, interpolatedUV, true);
+        AddToVertexList(cut, interpolatedUV, false);
         return cut;
 
     }
-    private static Vector3 GetHalfwayPoint(out float distance)
+    public static float InverseLerp(Vector3 a, Vector3 b, Vector3 value)
     {
-        if (_cutPoints.Count > 0)
-        {
-            Vector3 firstPoint = _cutPoints[0];
-            Vector3 furthestPoint = Vector3.zero;
-            distance = 0f;
-
-            foreach (Vector3 point in _cutPoints)
-            {
-                float currentDistance = 0f;
-                currentDistance = Vector3.Distance(firstPoint, point);
-
-                if (currentDistance > distance)
-                {
-                    distance = currentDistance;
-                    furthestPoint = point;
-                }
-            }
-
-            return Vector3.Lerp(firstPoint, furthestPoint, 0.5f);
-        }
-        else
-        {
-            distance = 0;
-            return Vector3.zero;
-        }
-    }
-    private static void SortCutPoints(List<Vector3> totalCutPoints)
-    {
-        totalCutPoints.Sort(CompareCutpoints);
-
-        int CompareCutpoints(Vector3 A, Vector3 B)
-        {
-            if (GetSlope(A, B) == 0)
-            {
-                return A.x < B.x ? -1 : 1;
-            }
-            else
-            {
-                return A.y < B.y ? -1 : 1;
-            }
-
-        }
+        Vector3 AB = b - a;
+        Vector3 AV = value - a;
+        return Vector3.Dot(AV, AB) / Vector3.Dot(AB, AB);
     }
 
     private static bool VertexIsAbovePlane(Plane plane, Vector3 vertex)
     {
         var isAbove = plane.GetSide(vertex);
         return isAbove;
-
     }
 
-    private static int AddToVertexList(Vector3 vertex, bool above)
+    private static int AddToVertexList(Vector3 vertex, Vector2 uv, bool above)
     {
         if (above)
         {
@@ -312,8 +217,8 @@ public static class MeshCutter
                 return _verticesAbove.IndexOf(vertex);
             }
             _verticesAbove.Add(vertex);
+            _upUVs.Add(uv);
             return _verticesAbove.Count - 1;
-
         }
         else
         {
@@ -323,6 +228,8 @@ public static class MeshCutter
             }
 
             _verticesBelow.Add(vertex);
+            _downUVs.Add(uv);
+
             return _verticesBelow.Count - 1;
 
         }
@@ -334,17 +241,34 @@ public static class MeshCutter
             _trianglesAbove.Add(v1);
             _trianglesAbove.Add(v2);
             _trianglesAbove.Add(v3);
-
         }
         else
         {
-
             _trianglesBelow.Add(v1);
             _trianglesBelow.Add(v2);
             _trianglesBelow.Add(v3);
 
         }
     }
+    //private static void AddToUVList(bool above, params Vector2[] uvs)
+    //{
+    //    if (above)
+    //    {
+    //        foreach (var uv in uvs)
+    //        {
+    //            //if (!_upUVs.Contains(uv))
+    //                _upUVs.Add(uv);
+    //        }
+    //    }
+    //    else
+    //    {
+    //        foreach (var uv in uvs)
+    //        {
+    //            //if (!_downUVs.Contains(uv))
+    //                _downUVs.Add(uv);
+    //        }
+    //    }
+    //}
     private static int GetCutIndex(Vector3 cut, bool above)
     {
         if (above)
