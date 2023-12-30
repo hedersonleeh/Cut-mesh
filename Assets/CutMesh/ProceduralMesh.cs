@@ -15,11 +15,11 @@ public class ProceduralMesh : MonoBehaviour
     {
         if (Input.GetKey(KeyCode.Q))
         {
-            planeT.Rotate(Vector3.forward );
+            planeT.Rotate(Vector3.forward);
         }
         else if (Input.GetKey(KeyCode.E))
         {
-            planeT.Rotate(Vector3.back );
+            planeT.Rotate(Vector3.back);
 
         }
         if (Input.GetKeyDown(KeyCode.Space))
@@ -108,7 +108,16 @@ public class ProceduralMesh : MonoBehaviour
         var Obj = new GameObject();
         Obj.name = mesh.name + " " + Obj.GetInstanceID();
         Obj.AddComponent<MeshFilter>().mesh = mesh;
-        Obj.AddComponent<MeshRenderer>().material = GetComponent<MeshRenderer>().material;
+        var renderer = Obj.AddComponent<MeshRenderer>();
+        var originalRenderer = GetComponent<MeshRenderer>();
+       var materials = new Material[mesh.subMeshCount];
+        for (int i = 0; i < mesh.subMeshCount; i++)
+        {
+           
+            var mat = i < originalRenderer.materials.Length ? originalRenderer.materials[i] : null;
+            materials[i] = mat;
+        }
+        renderer.materials = materials;
         var meshC = Obj.AddComponent<MeshCollider>();
         meshC.sharedMesh = mesh;
         meshC.convex = true;

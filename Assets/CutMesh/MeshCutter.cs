@@ -171,6 +171,11 @@ public static class MeshCutter
         _verticesBelow.Add(centroid);
         _upUVs.Add(Vector2.zero);
         _downUVs.Add(Vector2.zero);
+        Dictionary<int, List<int>> triangleWithSubMeshAbove = new Dictionary<int, List<int>>();
+        Dictionary<int, List<int>> triangleWithSubMeshBelow = new Dictionary<int, List<int>>();
+
+        triangleWithSubMeshAbove.Add(0, _trianglesAbove);
+        triangleWithSubMeshBelow.Add(0, _trianglesBelow);
 
         for (int i = 0; i < _cutPoints.Count; i++)
         {
@@ -189,12 +194,14 @@ public static class MeshCutter
 
         }
 
+        triangleWithSubMeshAbove.Add(1, coverATriangle);
+        triangleWithSubMeshBelow.Add(1, coverBTriangle);
 
-        _trianglesAbove.AddRange(coverATriangle);
-        _trianglesBelow.AddRange(coverBTriangle);
+        //_trianglesAbove.AddRange(coverATriangle);
+        //_trianglesBelow.AddRange(coverBTriangle);
 
-        var upMesh = CreateMesh(_verticesAbove, _trianglesAbove, _upUVs, originalMesh, transform);
-        var downMesh = CreateMesh(_verticesBelow, _trianglesBelow, _downUVs, originalMesh, transform);
+        var upMesh = CreateMesh(_verticesAbove, triangleWithSubMeshAbove, _upUVs, originalMesh, transform);
+        var downMesh = CreateMesh(_verticesBelow, triangleWithSubMeshBelow, _downUVs, originalMesh, transform);
 
         result = (upMesh, downMesh, _cutPoints);
 
