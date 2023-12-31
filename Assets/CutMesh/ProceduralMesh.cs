@@ -31,9 +31,10 @@ public class ProceduralMesh : MonoBehaviour
 
                 Rigidbody rbA = CreateRigidBodyObj(cutResult.Item1);
                 Rigidbody rbB = CreateRigidBodyObj(cutResult.Item2);
-                
-                rbA.AddForceAtPosition(_planeCut.normal, Random.insideUnitSphere, ForceMode.Impulse);
-                rbB.AddForceAtPosition(-_planeCut.normal, Random.insideUnitSphere, ForceMode.Impulse);
+
+                //rbA.isKinematic = rbB.isKinematic = true;
+                //rbA.AddForceAtPosition(_planeCut.normal, Random.insideUnitSphere, ForceMode.Impulse);
+                //rbB.AddForceAtPosition(-_planeCut.normal, Random.insideUnitSphere, ForceMode.Impulse);
 
 
                 rbA.transform.position = transform.position;

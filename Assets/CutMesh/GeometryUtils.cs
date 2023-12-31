@@ -4,9 +4,13 @@ using System.Collections.Generic;
 
 public static class GeometryUtils
 {
-    public static Mesh CreateMesh(List<Vector3> vertices, Dictionary<int, List<int>> triangles, List<Vector2> uvs)
+    public static Mesh CreateMesh(List<Vector3> vertices, Dictionary<int, List<int>> triangles, List<Vector2> uvs, Transform transform)
     {
         var mesh = new Mesh();
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            vertices[i] = vertices[i]-transform.position;
+        }
         mesh.SetVertices(vertices.ToArray());
         mesh.subMeshCount = 2;
         foreach (var subMesh in triangles.Keys)
@@ -14,10 +18,10 @@ public static class GeometryUtils
 
         mesh.uv = uvs.ToArray();
         mesh.RecalculateTangents();
-        var normals =new Vector3[vertices.Count];
-     
-        mesh.RecalculateNormals();
 
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+     
         return mesh;
     }
 

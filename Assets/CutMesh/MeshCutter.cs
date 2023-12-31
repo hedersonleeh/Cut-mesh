@@ -241,8 +241,8 @@ public static class MeshCutter
         //_trianglesAbove.AddRange(coverATriangle);
         //_trianglesBelow.AddRange(coverBTriangle);
 
-        var upMesh = CreateMesh(_verticesAbove, triangleWithSubMeshAbove, _upUVs);
-        var downMesh = CreateMesh(_verticesBelow, triangleWithSubMeshBelow, _downUVs);
+        var upMesh = CreateMesh(_verticesAbove, triangleWithSubMeshAbove, _upUVs,transform);
+        var downMesh = CreateMesh(_verticesBelow, triangleWithSubMeshBelow, _downUVs,transform);
 
         result = (upMesh, downMesh);
 
