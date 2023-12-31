@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public static class GeometryUtils
 {
-    public static Mesh CreateMesh(List<Vector3> vertices, Dictionary<int, List<int>> triangles, List<Vector2> uvs, Mesh originalMesh, Transform tranform)
+    public static Mesh CreateMesh(List<Vector3> vertices, Dictionary<int, List<int>> triangles, List<Vector2> uvs)
     {
         var mesh = new Mesh();
         mesh.SetVertices(vertices.ToArray());
@@ -14,6 +14,8 @@ public static class GeometryUtils
 
         mesh.uv = uvs.ToArray();
         mesh.RecalculateTangents();
+        var normals =new Vector3[vertices.Count];
+     
         mesh.RecalculateNormals();
 
         return mesh;
