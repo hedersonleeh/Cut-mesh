@@ -9,7 +9,7 @@ public static class GeometryUtils
         var mesh = new Mesh();
         for (int i = 0; i < vertices.Count; i++)
         {
-            vertices[i] = vertices[i]-transform.position;
+            vertices[i] = vertices[i] - transform.position;
         }
         mesh.SetVertices(vertices.ToArray());
         mesh.subMeshCount = 2;
@@ -19,12 +19,52 @@ public static class GeometryUtils
         mesh.uv = uvs.ToArray();
         mesh.RecalculateTangents();
 
-        mesh.RecalculateNormals();
+        var normals = GetNormals(vertices, triangles[0]);
+
+        mesh.SetNormals(normals);
+
+
+
+
         mesh.RecalculateBounds();
-     
+
         return mesh;
     }
 
+
+    private static List<Vector3> GetNormals(List<Vector3> vertices, List<int> triangles)
+    {
+        var normals = new List<Vector3>(vertices);
+
+
+        for (int i = 0; i < triangles.Count; i += 3)
+        {
+            int vertIndex1 = triangles[i];
+            int vertIndex2 = triangles[i + 1];
+            int vertIndex3 = triangles[i + 2];
+
+            Vector3 triangleNormal = ComputeNormal(vertices[vertIndex1], vertices[vertIndex2], vertices[vertIndex3]);
+
+            normals[vertIndex1] += triangleNormal;
+            normals[vertIndex2] += triangleNormal;
+            normals[vertIndex3] += triangleNormal;
+        }
+
+        //normals.ForEach(x =>
+        //{
+        //    x.Normalize();
+        //});
+        return normals;
+    }
+    private static Vector3 ComputeNormal(Vector3 vertex1, Vector3 vertex2, Vector3 vertex3)
+    {
+        Vector3 side1 = vertex2 - vertex1;
+        Vector3 side2 = vertex3 - vertex1;
+
+        Vector3 normal = Vector3.Cross(side1, side2);
+
+        return normal;
+    }
     public static List<Vector3> SortPolygonPoints(List<Vector3> points, bool clockwise = false)
     {
         //if (clockwise)
