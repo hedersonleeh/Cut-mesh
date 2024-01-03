@@ -43,7 +43,11 @@ public static class MeshCutter
         var originalUVs = new List<Vector2>();
 
         originalMesh.GetVertices(originalVertices);
-        originalTriangles.AddRange(originalMesh.GetTriangles(0));
+        for (int i = 0; i < originalMesh.subMeshCount; i++)
+        {
+        originalTriangles.AddRange(originalMesh.GetTriangles(i));
+
+        }
         originalMesh.GetUVs(0, originalUVs);
 
         var meshCutAbove = new Mesh();

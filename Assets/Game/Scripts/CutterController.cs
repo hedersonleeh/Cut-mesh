@@ -11,7 +11,7 @@ public class CutterController : MonoBehaviour
     [SerializeField] private Animator _animator;
     [SerializeField] private float pickUpVelocity = 10;
     Camera _mainCamera;
-
+    Coroutine _attackCoroutine;
     Vector3 _mouseInWorld;
     Plane _cameraPlane;
     Plane _cutPlane;
@@ -64,13 +64,13 @@ public class CutterController : MonoBehaviour
             _katana.position = Vector3.Lerp(_katana.position, _mouseInWorld, Time.smoothDeltaTime * pickUpVelocity);
         }
 
-        if (Input.GetMouseButtonDown(0) && !_attacking)
+        if ((Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)) && !_attacking)
         {
-            _source.pitch = 1 + Random.value*.2f;
+            _source.pitch = 1 + Random.value * .2f;
             _source.Play();
             _animator.Play("Attack");
-            StopAllCoroutines();
-            StartCoroutine(AttackCooldown(0.2f));
+            if (_attackCoroutine != null) StopCoroutine(_attackCoroutine);
+            _attackCoroutine = StartCoroutine(AttackCooldown(0.2f));
         }
 
     }
@@ -140,15 +140,17 @@ public class CutterController : MonoBehaviour
             var particles = Instantiate(_particles);
             particles.transform.position = renderer.transform.position;
             particles.transform.forward = _cutPlane.normal;
-            //rbA.isKinematic = rbB.isKinematic = true;
+            var main = particles.GetComponent<ParticleSystemRenderer>();
+            main.material.color = renderer.material.color;
+
             rbA.AddForceAtPosition(_cutPlane.normal, Random.insideUnitSphere * Random.value * 10, ForceMode.Impulse);
             rbB.AddForceAtPosition(-_cutPlane.normal, Random.insideUnitSphere * Random.value * 10, ForceMode.Impulse);
             rbA.velocity = rbB.velocity = inputVeocity;
             rbA.transform.position = renderer.transform.transform.position;
             rbB.transform.position = renderer.transform.transform.position;
             Destroy(renderer.gameObject);
-            Destroy(rbA.gameObject, 2f);
-            Destroy(rbB.gameObject, 2f);
+            StartCoroutine(Shrink(rbA.transform, 1 + Random.value * 2f));
+            StartCoroutine(Shrink(rbB.transform, 1 + Random.value * 2f));
         }
     }
 
@@ -157,6 +159,8 @@ public class CutterController : MonoBehaviour
         var Obj = new GameObject();
         Obj.name = mesh.name + " " + Obj.GetInstanceID();
         Obj.AddComponent<MeshFilter>().mesh = mesh;
+        Invoke(nameof(DelayChangeLayer), .6f);
+        Obj.layer = 6;
         var renderer = Obj.AddComponent<MeshRenderer>();
         var materials = new Material[mesh.subMeshCount];
         for (int i = 0; i < mesh.subMeshCount; i++)
@@ -170,5 +174,27 @@ public class CutterController : MonoBehaviour
         meshC.sharedMesh = mesh;
         meshC.convex = true;
         return Obj.AddComponent<Rigidbody>();
+    }
+    void DelayChangeLayer(GameObject target,int layer)
+    {
+        target.layer = layer;
+    }
+    private IEnumerator Shrink(Transform toShrink, float delay = 2f)
+    {
+        yield return new WaitForSeconds(delay);
+
+        var duration = .5f;
+        var steptime = 0f;
+        if (toShrink == null) yield break;
+        var initialScale = toShrink.localScale;
+        while (steptime < duration)
+        {
+            if (toShrink == null) yield break;
+
+            steptime += Time.deltaTime;
+            toShrink.localScale = Vector3.Lerp(initialScale, Vector3.zero, steptime / duration);
+            yield return new WaitForEndOfFrame();
+        }
+        Destroy(toShrink.gameObject);
     }
 }
