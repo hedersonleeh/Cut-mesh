@@ -159,8 +159,7 @@ public class CutterController : MonoBehaviour
         var Obj = new GameObject();
         Obj.name = mesh.name + " " + Obj.GetInstanceID();
         Obj.AddComponent<MeshFilter>().mesh = mesh;
-        Invoke(nameof(DelayChangeLayer), .6f);
-        Obj.layer = 6;
+        StartCoroutine(DelayChangeLayer(Obj,0.1f));
         var renderer = Obj.AddComponent<MeshRenderer>();
         var materials = new Material[mesh.subMeshCount];
         for (int i = 0; i < mesh.subMeshCount; i++)
@@ -175,9 +174,10 @@ public class CutterController : MonoBehaviour
         meshC.convex = true;
         return Obj.AddComponent<Rigidbody>();
     }
-    void DelayChangeLayer(GameObject target,int layer)
+    IEnumerator DelayChangeLayer(GameObject target,float delay)
     {
-        target.layer = layer;
+        yield return new WaitForSeconds(delay);
+        target.layer = 6;
     }
     private IEnumerator Shrink(Transform toShrink, float delay = 2f)
     {
