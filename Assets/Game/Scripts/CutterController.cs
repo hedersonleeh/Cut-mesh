@@ -59,7 +59,10 @@ public class CutterController : MonoBehaviour
             vpPos -= new Vector3(1, 1, 0) * .5f;
             vpPos *= 2f;
             vpPos.z = 0;
-            var targetRotation = Quaternion.LookRotation(vpPos, vpPos.x * Vector3.up);
+            Debug.Log(vpPos);
+            if (vpPos.x > -0.01f && vpPos.x <= 0.01f)
+                vpPos.x = 0.01f;
+            var targetRotation = Quaternion.LookRotation(vpPos, (vpPos.x) * Vector3.up);
             _katana.rotation = targetRotation;
             _katana.position = Vector3.Lerp(_katana.position, _mouseInWorld, Time.smoothDeltaTime * pickUpVelocity);
         }
@@ -80,10 +83,11 @@ public class CutterController : MonoBehaviour
         var mousePos = Input.mousePosition;
         mousePos.z = _mainCamera.nearClipPlane;
         var ray = _mainCamera.ScreenPointToRay(mousePos);
-
         if (_cameraPlane.Raycast(ray, out var distance))
         {
             _mouseInWorld = ray.GetPoint(distance);
+            //_mainCamera.transform.Rotate(-Vector3.right * Input.GetAxis("Mouse Y"));
+
 
         }
         Vector2 v = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
@@ -115,7 +119,7 @@ public class CutterController : MonoBehaviour
             vpPos -= new Vector3(1, 1, 0) * .5f;
             vpPos *= 2f;
             vpPos.z = 0;
-            var targetRotation = Quaternion.LookRotation(vpPos, vpPos.x * Vector3.up);
+            var targetRotation = Quaternion.LookRotation(vpPos, (vpPos.x + 0.0001f) * Vector3.up);
             _katana.rotation = Quaternion.Lerp(_katana.rotation, targetRotation, Time.smoothDeltaTime * pickUpVelocity);
 
             _katana.position = Vector3.Lerp(_katana.position, _mouseInWorld, Time.smoothDeltaTime * pickUpVelocity);
@@ -159,7 +163,7 @@ public class CutterController : MonoBehaviour
         var Obj = new GameObject();
         Obj.name = mesh.name + " " + Obj.GetInstanceID();
         Obj.AddComponent<MeshFilter>().mesh = mesh;
-        StartCoroutine(DelayChangeLayer(Obj,0.1f));
+        StartCoroutine(DelayChangeLayer(Obj, 0.1f));
         var renderer = Obj.AddComponent<MeshRenderer>();
         var materials = new Material[mesh.subMeshCount];
         for (int i = 0; i < mesh.subMeshCount; i++)
@@ -174,7 +178,7 @@ public class CutterController : MonoBehaviour
         meshC.convex = true;
         return Obj.AddComponent<Rigidbody>();
     }
-    IEnumerator DelayChangeLayer(GameObject target,float delay)
+    IEnumerator DelayChangeLayer(GameObject target, float delay)
     {
         yield return new WaitForSeconds(delay);
         target.layer = 6;
